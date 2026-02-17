@@ -5,6 +5,9 @@
 
 set -e
 
+# Ensure /usr/local/bin is in PATH (Rippling MDM runs with minimal PATH)
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
 LOGGED_IN_USER=$(stat -f%Su /dev/console)
 USER_HOME=$(eval echo ~$LOGGED_IN_USER)
 
