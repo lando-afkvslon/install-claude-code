@@ -100,6 +100,10 @@ if [ -z "$CLAUDE_BIN" ]; then
   exit 1
 fi
 
+# Create ~/.claude/debug directory for the user (needed for OAuth sign-in)
+sudo -u "$LOGGED_IN_USER" mkdir -p "$USER_HOME/.claude/debug"
+echo "Created $USER_HOME/.claude/debug for OAuth"
+
 echo "Claude Code installed successfully: $("$CLAUDE_BIN" --version 2>/dev/null || echo 'installed')"
 echo "Binary location: $CLAUDE_BIN"
 echo "Done - Claude Code is ready for $LOGGED_IN_USER"
