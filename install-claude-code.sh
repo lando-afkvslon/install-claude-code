@@ -21,17 +21,26 @@ chown -R "$LOGGED_IN_USER" "$USER_HOME/.claude"
 
 sudo -u "$LOGGED_IN_USER" bash -c 'curl -fsSL https://claude.ai/install.sh | bash' 2>&1
 
-# Add ~/.local/bin to PATH if not already there
+# --- Configure user's shell ---
 ZSHRC="$USER_HOME/.zshrc"
+
+# Add ~/.local/bin to PATH
 if ! grep -q '\.local/bin' "$ZSHRC" 2>/dev/null; then
   sudo -u "$LOGGED_IN_USER" bash -c "echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \"$ZSHRC\""
 fi
 
-# --- Pre-configure Terminal.app so Claude Code skips the setup prompt ---
-# This replicates exactly what Claude Code's /terminal-setup does internally:
-# 1. Set useOptionAsMetaKey on the user's default and startup Terminal profiles
-# 2. Disable the audible bell
-# 3. Reload cfprefsd so changes take effect without restarting Terminal
+# Prevent the terminal setup prompt from appearing.
+# Claude Code v2.1.45 has a bug where this prompt freezes in Terminal.app.
+# TERM_PROGRAM is only used for terminal identification, not rendering.
+# Rendering uses TERM (xterm-256color) which stays untouched.
+# Remove this alias once Anthropic fixes the freeze bug in a future version.
+if ! grep -q 'alias claude=' "$ZSHRC" 2>/dev/null; then
+  sudo -u "$LOGGED_IN_USER" bash -c "echo 'alias claude=\"TERM_PROGRAM=xterm-256color claude\"' >> \"$ZSHRC\""
+fi
+
+# --- Configure Terminal.app settings (Option+Enter, visual bell) ---
+# Even though the alias skips the prompt, we still configure Terminal.app
+# so users actually get the correct keyboard behavior
 TERM_PLIST="$USER_HOME/Library/Preferences/com.apple.Terminal.plist"
 if [ -f "$TERM_PLIST" ]; then
   DEFAULT_PROFILE=$(sudo -u "$LOGGED_IN_USER" defaults read com.apple.Terminal "Default Window Settings" 2>/dev/null || echo "Basic")
@@ -44,7 +53,6 @@ if [ -f "$TERM_PLIST" ]; then
       /usr/libexec/PlistBuddy -c "Set ':Window Settings:${PROFILE}:Bell' false" "$TERM_PLIST" 2>/dev/null || true
   done
 
-  # Force reload preferences so Terminal picks up changes immediately
   killall cfprefsd 2>/dev/null || true
   echo "Terminal.app configured (profile: $DEFAULT_PROFILE)"
 fi
