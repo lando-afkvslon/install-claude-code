@@ -24,9 +24,10 @@ if ! xcode-select -p &>/dev/null; then
   rm -f /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
 fi
 
-# Remove old npm-based install if present
-if [ -x "/usr/local/bin/claude" ] && /usr/local/bin/claude --version 2>/dev/null | grep -q "2\.1\."; then
-  echo "Removing old npm-based Claude Code install..."
+# Remove old npm-based claude binary so it doesn't shadow the native one
+if [ -x "/usr/local/bin/claude" ]; then
+  echo "Removing old npm-based Claude Code binary..."
+  rm -f /usr/local/bin/claude
   npm uninstall -g @anthropic-ai/claude-code 2>/dev/null || true
 fi
 
@@ -45,6 +46,13 @@ CLAUDE_BIN="$USER_HOME/.local/bin/claude"
 if [ ! -x "$CLAUDE_BIN" ]; then
   echo "Error: Claude Code installation failed - binary not found at $CLAUDE_BIN"
   exit 1
+fi
+
+# Ensure ~/.local/bin is in user's PATH (in case native installer didn't add it)
+ZSHRC="$USER_HOME/.zshrc"
+if [ ! -f "$ZSHRC" ] || ! grep -q '\.local/bin' "$ZSHRC" 2>/dev/null; then
+  sudo -u "$LOGGED_IN_USER" bash -c "echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \"$ZSHRC\""
+  echo "Added ~/.local/bin to PATH in .zshrc"
 fi
 
 echo "Claude Code installed successfully: $("$CLAUDE_BIN" --version 2>/dev/null || echo 'installed')"
