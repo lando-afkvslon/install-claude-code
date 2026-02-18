@@ -100,10 +100,9 @@ if [ -z "$CLAUDE_BIN" ]; then
   exit 1
 fi
 
-# Create ~/.claude directories for the user (needed for OAuth sign-in and config)
-# Running as root, so must create as the actual user to get correct ownership
-sudo -u "$LOGGED_IN_USER" mkdir -p "$USER_HOME/.claude/debug" "$USER_HOME/.claude/config"
-# Fix ownership in case ~/.claude was previously created by root
+# Create ~/.claude directories needed for OAuth sign-in and config
+# Script runs as root so mkdir always succeeds, then chown hands it all to the user
+mkdir -p "$USER_HOME/.claude/debug" "$USER_HOME/.claude/config"
 chown -R "$LOGGED_IN_USER" "$USER_HOME/.claude"
 echo "Created $USER_HOME/.claude directories for $LOGGED_IN_USER"
 
