@@ -27,4 +27,10 @@ if ! grep -q '\.local/bin' "$ZSHRC" 2>/dev/null; then
   sudo -u "$LOGGED_IN_USER" bash -c "echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \"$ZSHRC\""
 fi
 
+# Skip the terminal setup prompt that freezes in Terminal.app
+# Creates an alias that overrides TERM_PROGRAM so Claude doesn't detect Apple_Terminal
+if ! grep -q 'TERM_PROGRAM=xterm claude' "$ZSHRC" 2>/dev/null; then
+  sudo -u "$LOGGED_IN_USER" bash -c "echo 'alias claude=\"TERM_PROGRAM=xterm claude\"' >> \"$ZSHRC\""
+fi
+
 echo "Done. Open a new Terminal and run: claude"
