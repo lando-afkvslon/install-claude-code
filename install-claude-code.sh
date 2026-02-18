@@ -27,10 +27,26 @@ if ! grep -q '\.local/bin' "$ZSHRC" 2>/dev/null; then
   sudo -u "$LOGGED_IN_USER" bash -c "echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \"$ZSHRC\""
 fi
 
-# Skip the terminal setup prompt that freezes in Terminal.app
-# Creates an alias that overrides TERM_PROGRAM so Claude doesn't detect Apple_Terminal
-if ! grep -q 'TERM_PROGRAM=xterm claude' "$ZSHRC" 2>/dev/null; then
-  sudo -u "$LOGGED_IN_USER" bash -c "echo 'alias claude=\"TERM_PROGRAM=xterm claude\"' >> \"$ZSHRC\""
+# --- Pre-configure Terminal.app so Claude Code skips the setup prompt ---
+# This replicates exactly what Claude Code's /terminal-setup does internally:
+# 1. Set useOptionAsMetaKey on the user's default and startup Terminal profiles
+# 2. Disable the audible bell
+# 3. Reload cfprefsd so changes take effect without restarting Terminal
+TERM_PLIST="$USER_HOME/Library/Preferences/com.apple.Terminal.plist"
+if [ -f "$TERM_PLIST" ]; then
+  DEFAULT_PROFILE=$(sudo -u "$LOGGED_IN_USER" defaults read com.apple.Terminal "Default Window Settings" 2>/dev/null || echo "Basic")
+  STARTUP_PROFILE=$(sudo -u "$LOGGED_IN_USER" defaults read com.apple.Terminal "Startup Window Settings" 2>/dev/null || echo "Basic")
+
+  for PROFILE in "$DEFAULT_PROFILE" "$STARTUP_PROFILE"; do
+    /usr/libexec/PlistBuddy -c "Add ':Window Settings:${PROFILE}:useOptionAsMetaKey' bool true" "$TERM_PLIST" 2>/dev/null || \
+      /usr/libexec/PlistBuddy -c "Set ':Window Settings:${PROFILE}:useOptionAsMetaKey' true" "$TERM_PLIST" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add ':Window Settings:${PROFILE}:Bell' bool false" "$TERM_PLIST" 2>/dev/null || \
+      /usr/libexec/PlistBuddy -c "Set ':Window Settings:${PROFILE}:Bell' false" "$TERM_PLIST" 2>/dev/null || true
+  done
+
+  # Force reload preferences so Terminal picks up changes immediately
+  killall cfprefsd 2>/dev/null || true
+  echo "Terminal.app configured (profile: $DEFAULT_PROFILE)"
 fi
 
-echo "Done. Open a new Terminal and run: claude"
+echo "Done. Quit Terminal (Cmd+Q), reopen, and run: claude"
