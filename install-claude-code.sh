@@ -100,9 +100,12 @@ if [ -z "$CLAUDE_BIN" ]; then
   exit 1
 fi
 
-# Create ~/.claude/debug directory for the user (needed for OAuth sign-in)
-sudo -u "$LOGGED_IN_USER" mkdir -p "$USER_HOME/.claude/debug"
-echo "Created $USER_HOME/.claude/debug for OAuth"
+# Create ~/.claude directories for the user (needed for OAuth sign-in and config)
+# Running as root, so must create as the actual user to get correct ownership
+sudo -u "$LOGGED_IN_USER" mkdir -p "$USER_HOME/.claude/debug" "$USER_HOME/.claude/config"
+# Fix ownership in case ~/.claude was previously created by root
+chown -R "$LOGGED_IN_USER" "$USER_HOME/.claude"
+echo "Created $USER_HOME/.claude directories for $LOGGED_IN_USER"
 
 echo "Claude Code installed successfully: $("$CLAUDE_BIN" --version 2>/dev/null || echo 'installed')"
 echo "Binary location: $CLAUDE_BIN"
